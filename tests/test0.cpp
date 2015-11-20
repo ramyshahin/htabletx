@@ -24,6 +24,7 @@ int main()
   size_t count;
   in >> count;
 
+  count = 5;
   vector<int> keys(count);
   vector<int> vals(count);
 

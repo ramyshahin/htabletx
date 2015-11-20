@@ -5,6 +5,19 @@
 #include <cstring>
 #include <exception>
 #include <immintrin.h>
+#include <iostream>
+
+using namespace std;
+
+#define TX(F) {  auto xbegin_ret = _xbegin();    \
+  if (xbegin_ret == _XBEGIN_STARTED) {           \
+    F;                                           \
+    _xend();                                     \
+  }                                              \
+  else {                                         \
+    cerr << "_xbegin() failed: " << ios::hex << xbegin_ret << endl; \
+  }                                              \
+}
 
 class TableFull : public std::exception
 {
@@ -54,17 +67,19 @@ public:
     Entry e(key, val);
     size_t index = fhash(key);
     size_t probeCount = 0;
-
-    while(table[index].key != NIL_KEY && probeCount < numEntries) {
-      index = (index + 1) % numEntries;
-      probeCount++;
-    }
-
-    if (probeCount == numEntries) {
-      throw TableFull();
-    }
-
-    table[index] = e;
+   
+    TX({
+      while(table[index].key != NIL_KEY && probeCount < numEntries) {
+        index = (index + 1) % numEntries;
+        probeCount++;
+      }
+      
+      if (probeCount == numEntries) {
+        cerr << "Full\n";
+        throw TableFull();
+      }
+      table[index] = e;
+      }); 
   }
 
   TV find(const TK& k) 
@@ -72,16 +87,20 @@ public:
     size_t index = fhash(k);
     size_t probeCount = 0;
 
-    while(table[index].key != NIL_KEY && probeCount < numEntries) {
-      if (table[index].key == k) {
-        return table[index].value;
-      }
-  
-      index = (index+1) % numEntries;
-      probeCount++;
-    } //while 
+    TV ret = 0;
 
-    return 0;
+    TX({
+      while(table[index].key != NIL_KEY && probeCount < numEntries) {
+        if (table[index].key == k) {
+          ret = table[index].value;
+        }
+  
+        index = (index+1) % numEntries;
+        probeCount++;
+      } //while 
+    });
+
+    return ret;
   } // operator[]
 
 }; // class HashTable 
