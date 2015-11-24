@@ -1,4 +1,6 @@
+#include "stdafx.h"
 #include "../hashtable.h"
+#include "../timer.h"
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -37,23 +39,16 @@ int main()
 
   HashTable<int, int> table(TABLE_SIZE);
 
-  timespec start, end;
+  Timer timer;
 
-  if (clock_gettime(CLOCK_REALTIME, &start)) {
-    cerr << "gettime failed\n";
-  }
+  Microseconds t = timer.time([&]() {
+	  for (size_t i = 0; i < count; i++) {
+		  table.insert(keys[i], vals[i]);
+	  }
+  });
 
-  for(size_t i=0; i<count; i++) {
-    table.insert(keys[i], vals[i]);
-  }
 
-  if (clock_gettime(CLOCK_REALTIME, &end)) {
-    cerr << "gettime failed\n";
-  }
-
-  cout << "Start time: " << start.tv_sec << ", " << start.tv_nsec << endl;
-  cout << "End   time: " << end.tv_sec   << ", " << end.tv_nsec << endl;
-  cout << "time delta: " << end.tv_nsec - start.tv_nsec << " ns." << endl;
+  cout << "time: " << t << " us." << endl;
 
   for(size_t i=0; i<count; i++) {
     int v = table.find(keys[i]);
