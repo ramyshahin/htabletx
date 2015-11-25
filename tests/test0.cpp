@@ -23,12 +23,16 @@ size_t fhash(const string* key)
 int main()
 {
   ifstream in("test0.txt");
+  if (!in.is_open()) {
+	  cerr << "Couldn't open input file" << endl;
+	  return -1;
+  }
+
   size_t count;
   in >> count;
 
-  count = 5;
-  vector<int> keys(count);
-  vector<int> vals(count);
+  vector<int> keys; keys.reserve(count);
+  vector<int> vals; vals.reserve(count);
 
   for(size_t i=0; i<count; i++) {
     int key, val;
@@ -41,7 +45,7 @@ int main()
 
   Timer timer;
 
-  Microseconds t = timer.time([&]() {
+  unsigned long t = timer.time([&]() {
 	  for (size_t i = 0; i < count; i++) {
 		  table.insert(keys[i], vals[i]);
 	  }
@@ -50,13 +54,16 @@ int main()
 
   cout << "time: " << t << " us." << endl;
 
+  size_t mismatchCount = 0;
   for(size_t i=0; i<count; i++) {
     int v = table.find(keys[i]);
     if (v != vals[i]) {
-      cerr << "Mismatch at " << keys[i] << ". Actual: " << v << "\tExpected: " << vals[i] << endl;
+      cerr << "Mismatch at " << i << ". Actual: " << v << "\tExpected: " << vals[i] << endl;
+	  mismatchCount++;
     }
   }
 
+  cout << mismatchCount << "mismatches" << endl;
   cout << "Done." << endl;
 
   return 0;

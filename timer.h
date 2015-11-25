@@ -8,7 +8,7 @@ typedef unsigned long Microseconds;
 class Timer
 {
 private:
-	long freq;
+	LARGE_INTEGER freq;
 
 public:
 	Timer() {
@@ -17,13 +17,13 @@ public:
 
 	Microseconds time(const std::function<void(void)>& f)
 	{
-		Microseconds tBegin = 0, tEnd = 0;
+		LARGE_INTEGER tBegin, tEnd;
 		Microseconds t = 0;
 
 		if (QueryPerformanceCounter((LARGE_INTEGER*)&tBegin) != 0) {
 			f();
 			QueryPerformanceCounter((LARGE_INTEGER*)&tEnd);
-			t = tEnd - tBegin;
+			t = tEnd.QuadPart - tBegin.QuadPart;
 		}
 #if 0
 		timespec start, end;

@@ -145,6 +145,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\hashtable.h" />
     <ClInclude Include="..\timer.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
