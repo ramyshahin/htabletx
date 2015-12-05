@@ -5,24 +5,15 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <omp.h>
 
 using namespace std;
 
-const size_t TABLE_SIZE = 1000000;
-
-#if 0 
-size_t fhash(const string* key)
-{
-  const size_t WORD_LENGTH = sizeof(int*);
-
-  size_t index = ((size_t) key) / WORD_LENGTH;
-  return index % TABLE_SIZE;
-}
-#endif
+const size_t TABLE_SIZE = 2000000;
 
 int main()
 {
-  ifstream in("test0.txt");
+  ifstream in("test1M.txt");
   if (!in.is_open()) {
 	  cerr << "Couldn't open input file" << endl;
 	  return -1;
@@ -43,10 +34,13 @@ int main()
 
   HashTable<int, int> table(TABLE_SIZE);
 
+  omp_set_dynamic(0);     // Explicitly disable dynamic teams
+  
   Timer timer;
 
   unsigned long t = timer.time([&]() {
-	  for (size_t i = 0; i < count; i++) {
+      #pragma omp parallel for num_threads(32)
+	  for (int i = 0; i < count; i++) {
 		  table.insert(keys[i], vals[i]);
 	  }
   });
@@ -58,7 +52,7 @@ int main()
   for(size_t i=0; i<count; i++) {
     int v = table.find(keys[i]);
     if (v != vals[i]) {
-      cerr << "Mismatch at " << i << ". Actual: " << v << "\tExpected: " << vals[i] << endl;
+      cerr << "Mismatch at " << keys[i] << ". Actual: " << v << "\tExpected: " << vals[i] << endl;
 	  mismatchCount++;
     }
   }
