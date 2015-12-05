@@ -3,16 +3,19 @@
 
 #include <windows.h>
 
-typedef unsigned long Microseconds;
+typedef double Microseconds;
 
 class Timer
 {
 private:
-	LARGE_INTEGER freq;
+	double freq;
 
 public:
 	Timer() {
-		QueryPerformanceFrequency((LARGE_INTEGER*)&freq);
+		LARGE_INTEGER fr;
+		QueryPerformanceFrequency((LARGE_INTEGER*)&fr);
+		freq = ((double)fr.QuadPart) / 1000000.0f;
+		cout << "Frequency: " << freq << endl;
 	}
 
 	Microseconds time(const std::function<void(void)>& f)
@@ -23,7 +26,7 @@ public:
 		if (QueryPerformanceCounter((LARGE_INTEGER*)&tBegin) != 0) {
 			f();
 			QueryPerformanceCounter((LARGE_INTEGER*)&tEnd);
-			t = tEnd.QuadPart - tBegin.QuadPart;
+			t = (tEnd.QuadPart - tBegin.QuadPart) / freq;
 		}
 #if 0
 		timespec start, end;
