@@ -4,25 +4,12 @@
 #include <functional>
 #include <cstring>
 #include <exception>
-#include <immintrin.h>
 #include <iostream>
+#include "TxPolicy.h"
 
 using namespace std;
 
 size_t index = 0;
-
-inline void TX(function<void(void)> F) {  
-  index++;
-  volatile auto xbegin_ret = _xbegin();
-  if (xbegin_ret == _XBEGIN_STARTED) {
-    F();    
-	_xabort(0xff);
-    //_xend();
-  }
-  else {
-    cerr << "_xbegin() failed: " << xbegin_ret << " Index: " << index << endl;
-  }
-}
 
 class TableFull : public std::exception
 {
@@ -32,9 +19,10 @@ template<
   typename TK,                    // key type
   typename TV,                    // value type
   typename H = std::hash<TK>,     // hashing functor			
-  TK       NIL_KEY = TK()
+  TK       NIL_KEY = TK(),
+  typename TX_POLICY = TxNon //TxRTM<2>
   >
-class HashTable
+class HashTable : protected TX_POLICY
 {
 private:
   struct Entry {
@@ -53,13 +41,11 @@ private:
   Entry* table;
   size_t numEntries;
   H fhash;
-  unsigned int mutex;
-
+  
 public:
   HashTable(size_t size):     
     table(new Entry[size]),
-    numEntries(size),
-	mutex(0)
+    numEntries(size)
   {
     memset(table, 0, sizeof(Entry) * size);
   }
@@ -69,34 +55,13 @@ public:
     delete[] table;
   }
 
-  bool lock() {
-	  if (_xbegin() == _XBEGIN_STARTED)
-	  {
-		  if (mutex == 0) {
-			  return true;
-		  }
-		  _xabort(0xff);
-	  }
-	  cout << "lock elision failed" << endl;
-	  return false;
-  }
-
-  void unlock() {
-	  if (mutex == 0) {
-		  _xend();
-	  }
-	  else {
-		  cout << "unlock: lock elision failed" << endl;
-	  }
-  }
-
   void insert(const TK& key, const TV& val)
   {
 	  Entry e(key, val);
 	  size_t index = fhash(key) % numEntries;
 	  size_t probeCount = 0;
 
-	  if (lock())
+	  if (TxBegin())
 	  {
 		  while (table[index].key != NIL_KEY && probeCount < numEntries) {
 			  index = (index + 1) % numEntries;
@@ -108,8 +73,7 @@ public:
 			  throw TableFull();
 		  }
 		  table[index] = e;
-
-		  unlock();
+		  TxEnd();
 	  }
   }
 
@@ -125,6 +89,7 @@ public:
       while(table[index].key != NIL_KEY && probeCount < numEntries) {
         if (table[index].key == k) {
           ret = table[index].value;
+		  break;
         }
   
         index = (index+1) % numEntries;
