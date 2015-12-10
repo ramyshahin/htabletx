@@ -15,7 +15,6 @@ public:
 		LARGE_INTEGER fr;
 		QueryPerformanceFrequency((LARGE_INTEGER*)&fr);
 		freq = ((double)fr.QuadPart) / 1000000.0f;
-		cout << "Frequency: " << freq << endl;
 	}
 
 	Microseconds time(const std::function<void(void)>& f)

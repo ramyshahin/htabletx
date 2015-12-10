@@ -20,7 +20,7 @@ template<
   typename TV,                    // value type
   typename H = std::hash<TK>,     // hashing functor			
   TK       NIL_KEY = TK(),
-  typename TX_POLICY = TxNon //TxRTM<2>
+  typename TX_POLICY = TxRTM<5>
   >
 class HashTable : protected TX_POLICY
 {
@@ -61,20 +61,19 @@ public:
 	  size_t index = fhash(key) % numEntries;
 	  size_t probeCount = 0;
 
-	  if (TxBegin())
+	  exclusive([&]()
 	  {
 		  while (table[index].key != NIL_KEY && probeCount < numEntries) {
 			  index = (index + 1) % numEntries;
 			  probeCount++;
 		  }
 
-		  if (probeCount == numEntries) {
-			  cerr << "Full\n";
-			  throw TableFull();
-		  }
+		  //if (probeCount == numEntries) {
+		//	  cerr << "Full\n";
+			//  throw TableFull();
+		  //}
 		  table[index] = e;
-		  TxEnd();
-	  }
+	  });
   }
 
   TV find(const TK& k) 
@@ -84,7 +83,7 @@ public:
 
     TV ret = 0;
 
-	//lock();
+	shared([&]()
     {
       while(table[index].key != NIL_KEY && probeCount < numEntries) {
         if (table[index].key == k) {
@@ -95,12 +94,17 @@ public:
         index = (index+1) % numEntries;
         probeCount++;
       } //while 
-    }
-	//unlock();
-
+	});
+	
     return ret;
   } // operator[]
 
+#ifdef TX_DIAGNOSTICS
+  void dumpDiagnostics(ostream& out) const 
+  {
+	  out << GetRetryCount() << "\t" << GetLockCount() << "\t";
+  }
+#endif //TX_DIAGNOSTICS
 }; // class HashTable 
 
 #endif //_HASHTABLE_H

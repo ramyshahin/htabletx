@@ -1,4 +1,7 @@
 #include "stdafx.h"
+
+//#define TX_DIAGNOSTICS
+
 #include "../hashtable.h"
 #include "../timer.h"
 #include <string>
@@ -11,8 +14,16 @@ using namespace std;
 
 const size_t TABLE_SIZE = 2000000;
 
-int main()
+int main(int argc, char* argv[])
 {
+  if (argc != 2)
+  {
+	  cerr << "Usage: " << argv[0] << " thread-count" << endl;
+	  return -1;
+  }
+
+  int threadCount = atoi(argv[1]);
+
   ifstream in("test1M.txt");
   if (!in.is_open()) {
 	  cerr << "Couldn't open input file" << endl;
@@ -38,15 +49,21 @@ int main()
   
   Timer timer;
 
-  unsigned long t = timer.time([&]() {
-      #pragma omp parallel for num_threads(32)
+  Microseconds t = timer.time([&]() {
+      #pragma omp parallel for num_threads(threadCount)
 	  for (int i = 0; i < count; i++) {
 		  table.insert(keys[i], vals[i]);
 	  }
   });
 
 
-  cout << "time: " << t << " us." << endl;
+  cout << threadCount << "\t" << t << "\t";
+  
+#ifdef TX_DIAGNOSTICS
+  table.dumpDiagnostics(cout);
+#endif // TX_DIAGNOSTICS
+
+  cout << endl;
 
   size_t mismatchCount = 0;
   for(size_t i=0; i<count; i++) {
@@ -57,8 +74,8 @@ int main()
     }
   }
 
-  cout << mismatchCount << "mismatches" << endl;
-  cout << "Done." << endl;
+  //cout << mismatchCount << "mismatches" << endl;
+  //cout << "Done." << endl;
 
   return 0;
 } 
