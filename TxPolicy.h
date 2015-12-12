@@ -18,23 +18,17 @@ public:
 		InitializeSRWLock(&lock);
 	}
 
-	__forceinline void EnterShared()
+	__forceinline void shared(const Action& act)
 	{
 		AcquireSRWLockShared(&lock);
-	}
-
-	__forceinline void LeaveShared() 
-	{
+		act();
 		ReleaseSRWLockShared(&lock);
 	}
 
-	__forceinline void EnterExclusive()
+	__forceinline void exclusive(const Action& act)
 	{
 		AcquireSRWLockExclusive(&lock);
-	}
-
-	__forceinline void LeaveExclusive() 
-	{
+		act();
 		ReleaseSRWLockExclusive(&lock);
 	}
 }; // TxNon
@@ -46,6 +40,7 @@ private:
 	SRWLOCK lock; // reader-writer lock
 
 #ifdef TX_DIAGNOSTICS
+	size_t totalTx;
 	size_t totalRetry;
 	size_t totalLocks;
 #endif //TX_DIAGNOSTICS
@@ -60,6 +55,7 @@ public:
 	__forceinline TxRTM()
 	{
 #ifdef TX_DIAGNOSTICS
+		totalTx = 0;
 		totalRetry = 0;
 		totalLocks = 0;
 #endif //TX_DIAGNOSTICS
@@ -71,6 +67,9 @@ public:
 		unsigned int r = 0;
 		bool tx = false;
 		while (r <= RETRY_COUNT) {
+#ifdef TX_DIAGNOSTICS
+			InterlockedIncrement(&totalTx);
+#endif //TX_DIAGNOSTICS
 			xbegin_ret = _xbegin();
 			if (xbegin_ret == _XBEGIN_STARTED) {
 				tx = true;
@@ -105,6 +104,9 @@ public:
 		unsigned int r = 0;
 		bool tx = false;
 		while (r <= RETRY_COUNT) {
+#ifdef TX_DIAGNOSTICS
+			InterlockedIncrement(&totalTx);
+#endif //TX_DIAGNOSTICS
 			xbegin_ret = _xbegin();
 			if (xbegin_ret == _XBEGIN_STARTED) {
 				tx = true;
@@ -135,8 +137,13 @@ public:
 
 #ifdef TX_DIAGNOSTICS
 	__forceinline void ResetCounts() {
+		totalTx = 0;
 		totalRetry = 0;
 		totalLocks = 0;
+	}
+
+	__forceinline size_t GetTxCount() const {
+		return totalTx;
 	}
 
 	__forceinline size_t GetRetryCount() const {

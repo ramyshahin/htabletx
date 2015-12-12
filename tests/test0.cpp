@@ -1,8 +1,17 @@
 #include "stdafx.h"
 
-//#define TX_DIAGNOSTICS
+#define TX_DIAGNOSTICS
+#define HT_PROBING
+//#define HT_BUCKETS
 
-#include "../hashtable.h"
+#ifdef HT_PROBING
+#include "../ht_probing.h"
+#endif //HT_PROBING
+
+#ifdef HT_BUCKETS
+#include "../ht_buckets.h"
+#endif //HT_BUCKETS
+
 #include "../timer.h"
 #include <string>
 #include <iostream>
@@ -12,7 +21,13 @@
 
 using namespace std;
 
+#ifdef HT_PROBING
 const size_t TABLE_SIZE = 2000000;
+#endif
+
+#ifdef HT_BUCKETS
+const size_t TABLE_SIZE = 1000000;
+#endif
 
 int main(int argc, char* argv[])
 {

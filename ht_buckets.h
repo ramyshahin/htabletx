@@ -1,10 +1,11 @@
-#ifndef _HASHTABLE_H
-#define _HASHTABLE_H
+#ifndef _HT_BUCKETS_H
+#define _HT_BUCKETS_H
 
 #include <functional>
 #include <cstring>
 #include <exception>
 #include <iostream>
+#include <list>
 #include "TxPolicy.h"
 
 using namespace std;
@@ -36,18 +37,22 @@ private:
     Entry(const TK& k, const TV& v): key(k), value(v)
     {
     } 
+
+	bool operator==(const TK& k) const
+	{
+		return key == k;
+	}
   }; // struct Entry
 
-  Entry* table;
-  size_t numEntries;
+  std::list<Entry>* table;
+  size_t numBuckets;
   H fhash;
   
 public:
-  HashTable(size_t size):     
-    table(new Entry[size]),
-    numEntries(size)
+  HashTable(size_t buckets):     
+    table(new std::list<Entry>[buckets]),
+    numBuckets(buckets)
   {
-    memset(table, 0, sizeof(Entry) * size);
   }
 
   ~HashTable()
@@ -58,42 +63,26 @@ public:
   void insert(const TK& key, const TV& val)
   {
 	  Entry e(key, val);
-	  size_t index = fhash(key) % numEntries;
-	  size_t probeCount = 0;
-
+	  size_t index = fhash(key) % numBuckets;
+	  
 	  exclusive([&]()
 	  {
-		  while (table[index].key != NIL_KEY && probeCount < numEntries) {
-			  index = (index + 1) % numEntries;
-			  probeCount++;
-		  }
-
-		  //if (probeCount == numEntries) {
-		//	  cerr << "Full\n";
-			//  throw TableFull();
-		  //}
-		  table[index] = e;
+		  table[index].push_back(e);
 	  });
   }
 
   TV find(const TK& k) 
   {
-    size_t index = fhash(k) % numEntries;
+    size_t index = fhash(k) % numBuckets;
     size_t probeCount = 0;
 
     TV ret = 0;
 
 	shared([&]()
     {
-      while(table[index].key != NIL_KEY && probeCount < numEntries) {
-        if (table[index].key == k) {
-          ret = table[index].value;
-		  break;
-        }
-  
-        index = (index+1) % numEntries;
-        probeCount++;
-      } //while 
+		const list<Entry>& l = table[index];
+		auto ie = std::find(l.begin(), l.end(), k);
+		ret = ie->value;
 	});
 	
     return ret;
@@ -102,9 +91,10 @@ public:
 #ifdef TX_DIAGNOSTICS
   void dumpDiagnostics(ostream& out) const 
   {
-	  out << GetRetryCount() << "\t" << GetLockCount() << "\t";
+	  double pctRetry = (((double)GetRetryCount()) / GetTxCount()) * 100.0;
+	  out << GetTxCount() << "\t" << GetRetryCount() << "\t" << pctRetry << "\t" << GetLockCount() << "\t";
   }
 #endif //TX_DIAGNOSTICS
 }; // class HashTable 
 
-#endif //_HASHTABLE_H
+#endif //_HT_BUCKETS_H

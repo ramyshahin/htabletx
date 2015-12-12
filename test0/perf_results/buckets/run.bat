@@ -1,0 +1,13 @@
+AvgPerfResults.exe stats_diag_retry0.txt 5
+AvgPerfResults.exe stats_diag_retry1.txt 5
+AvgPerfResults.exe stats_diag_retry2.txt 5
+AvgPerfResults.exe stats_diag_retry3.txt 5
+AvgPerfResults.exe stats_diag_retry4.txt 5
+AvgPerfResults.exe stats_diag_retry5.txt 5
+AvgPerfResults.exe stats_retry0.txt 1
+AvgPerfResults.exe stats_retry1.txt 1
+AvgPerfResults.exe stats_retry2.txt 1
+AvgPerfResults.exe stats_retry3.txt 1
+AvgPerfResults.exe stats_retry4.txt 1
+AvgPerfResults.exe stats_retry5.txt 1
+AvgPerfResults.exe stats_txnon.txt 1
