@@ -20,7 +20,6 @@ template<
   typename TK,                    // key type
   typename TV,                    // value type
   typename H = std::hash<TK>,     // hashing functor			
-  TK       NIL_KEY = TK(),
   typename TX_POLICY = TxRTM<5>
   >
 class HashTable : protected TX_POLICY
@@ -48,6 +47,8 @@ private:
   size_t numBuckets;
   H fhash;
   
+  static const TK NIL_KEY;
+
 public:
   HashTable(size_t buckets):     
     table(new std::list<Entry>[buckets]),
@@ -88,11 +89,43 @@ public:
     return ret;
   } // operator[]
 
+  void insertOtherwiseUpdate(
+	  const TK& key,
+	  const TV& val,
+	  const function<void(TV&)>& fUpdate
+	  )
+  {
+	  size_t index = fhash(key) % numBuckets;
+
+	  exclusive([&]()
+	  {
+		  auto& bucket = table[index];
+		  auto& it = std::find(bucket.begin(), bucket.end(), key);
+		  if (it == bucket.end()) {
+			  Entry e(key, val);
+			  bucket.push_back(e);
+		  }
+		  else {
+			  fUpdate(it->value);
+		  }
+	  });
+  }
+
+  void dump(ostream& out) {
+	  for (size_t i = 0; i < numBuckets; i++) {
+		  auto& bucket = table[i];
+		  for (const auto& item : bucket) {
+			  out << item.key << "\t" << item.value << endl;
+		  }
+	  }
+  }
+
 #ifdef TX_DIAGNOSTICS
   void dumpDiagnostics(ostream& out) const 
   {
-	  double pctRetry = (((double)GetRetryCount()) / GetTxCount()) * 100.0;
-	  out << GetTxCount() << "\t" << GetRetryCount() << "\t" << pctRetry << "\t" << GetLockCount() << "\t";
+	  //double pctRetry = (((double)GetRetryCount()) / GetTxCount()) * 100.0;
+	  //out << GetTxCount() << "\t" << GetRetryCount() << "\t" << pctRetry << "\t" << GetLockCount() << "\t";
+	  dumpCommitHistogram(out);
   }
 #endif //TX_DIAGNOSTICS
 }; // class HashTable 

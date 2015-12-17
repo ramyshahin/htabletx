@@ -43,6 +43,7 @@ private:
 	size_t totalTx;
 	size_t totalRetry;
 	size_t totalLocks;
+	size_t commitHistogram[RETRY_COUNT + 2];
 #endif //TX_DIAGNOSTICS
 
 protected:
@@ -54,10 +55,14 @@ protected:
 public:
 	__forceinline TxRTM()
 	{
+		InitializeSRWLock(&lock);
 #ifdef TX_DIAGNOSTICS
 		totalTx = 0;
 		totalRetry = 0;
 		totalLocks = 0;
+		for (size_t i = 0; i <= RETRY_COUNT+1; i++) {
+			commitHistogram[i] = 0;
+		}
 #endif //TX_DIAGNOSTICS
 	}
 
@@ -133,6 +138,9 @@ public:
 		else {
 			ReleaseSRWLockExclusive(&lock);
 		}
+#ifdef TX_DIAGNOSTICS
+		InterlockedIncrement(&commitHistogram[r]);
+#endif
 	} // exclusive
 
 #ifdef TX_DIAGNOSTICS
@@ -140,6 +148,10 @@ public:
 		totalTx = 0;
 		totalRetry = 0;
 		totalLocks = 0;
+
+		for (size_t i = 0; i <= RETRY_COUNT+1; i++) {
+			commitHistogram[i] = 0;
+		}
 	}
 
 	__forceinline size_t GetTxCount() const {
@@ -152,6 +164,12 @@ public:
 
 	__forceinline size_t GetLockCount() const {
 		return totalLocks;
+	}
+
+	__forceinline void dumpCommitHistogram(std::ostream& out) const {
+		for (size_t i = 0; i <= RETRY_COUNT+1; i++) {
+			out << "\t" << commitHistogram[i];
+		}
 	}
 #endif //TX_DIAGNOSTICS
 }; // TxRTM

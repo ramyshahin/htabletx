@@ -3,7 +3,7 @@
 
 #include <windows.h>
 
-typedef double Microseconds;
+typedef ULONG64 Microseconds;
 
 class Timer
 {
@@ -14,7 +14,7 @@ public:
 	Timer() {
 		LARGE_INTEGER fr;
 		QueryPerformanceFrequency((LARGE_INTEGER*)&fr);
-		freq = ((double)fr.QuadPart) / 1000000.0f;
+		freq = fr.QuadPart / 1000000;
 	}
 
 	Microseconds time(const std::function<void(void)>& f)

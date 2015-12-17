@@ -89,8 +89,5 @@ int main(int argc, char* argv[])
     }
   }
 
-  //cout << mismatchCount << "mismatches" << endl;
-  //cout << "Done." << endl;
-
   return 0;
 } 
